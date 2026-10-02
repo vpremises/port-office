@@ -1,4 +1,5 @@
-FROM coelaoss/base-debian:bookworm-p3.11.7-n18
+ARG IMAGE_NAMESPACE=ghcr.io/vpremises
+FROM ${IMAGE_NAMESPACE}/base-debian:bookworm-p3.11.7-n18
 
 WORKDIR /home/frappe
 ENV PATH=/root/.local/pipx/venvs/frappe/bin:$PATH

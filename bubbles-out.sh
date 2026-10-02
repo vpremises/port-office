@@ -1,9 +1,9 @@
 #!/bin/bash
 
-USER_NAME=$1
+USER_NAME=${1:-}
 
 if [ -z "$USER_NAME" ]; then
-    echo "Usage: $0 [docker hub username]"
+    echo "Usage: $0 [registry/namespace]"
     exit 1
 fi
 
@@ -35,6 +35,7 @@ for dockerfile in $(find . -type f -name 'Dockerfile'); do
     echo "  context = \"$approot\"" >> docker-bake.hcl
     echo "  dockerfile = \"$short_dockerfile_path\"" >> docker-bake.hcl
     echo "  tags = [\"$username/$image_tag:$base\"]" >> docker-bake.hcl
+    echo "  args = { IMAGE_NAMESPACE = \"$username\" }" >> docker-bake.hcl
     
     if [[ $path == "./frappe/"* ]]; then
         depends=()
@@ -48,7 +49,7 @@ for dockerfile in $(find . -type f -name 'Dockerfile'); do
             done
         fi
 
-        [[ ${#depends[@]} -gt 0 ]] && echo "  depends_on = [$(IFS=, ; echo "${depends[*]}")]" >> docker-bake.hcl
+        # Base images must be built and made available before dependent groups.
     fi
 
     echo "}" >> docker-bake.hcl

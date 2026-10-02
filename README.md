@@ -16,7 +16,7 @@
 Build bake file script generates Docker image tags based on the directory structure of Dockerfiles, specifically designed for a hierarchical directory structure.
 
 ```
-./bubbles-out.sh [docker hub username]
+./bubbles-out.sh [registry/namespace]
 ```
 
 After exec the script. Bake file for Github Action out `bocker-bake.hcl` in same directory.
@@ -31,7 +31,7 @@ cat docker-bake.hcl
 
 ├── base
 │ ├── alpine
-│ │ └── v1.0 (-> coelaoss/base-alpine:v1)
+│ │ └── v1.0 (-> ghcr.io/vpremises/base-alpine:v1)
 │ │   └── Dockerfile
 │ └── debian
 │   └── v1.0
@@ -52,3 +52,9 @@ If want to build a specific file locally, run the following command:
 ```
 ./local-build.sh [target name in hcl file]
 ```
+
+## Distribution configuration
+
+The planned image namespace is `ghcr.io/vpremises`, configurable through `IMAGE_NAMESPACE` in the bake file. No images have been published to that namespace by this migration. Build and authorize the base images before dependent Frappe images. The checked-in Dockerfiles are historical build examples; a full image build and vulnerability assessment remain prerequisites for release.
+
+Publication is manual and disabled unless `CONTAINER_PUBLICATION_ENABLED` is explicitly set to `true`. Configure `CONTAINER_REGISTRY`, `CONTAINER_NAMESPACE`, and narrowly scoped `CONTAINER_USERNAME` / `CONTAINER_TOKEN` secrets only after approving the registry destination and package permissions. Source pushes do not publish images. Consumers set the image reference to an available immutable image digest before deployment.
