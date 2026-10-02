@@ -1,60 +1,34 @@
-# Port Office
+# port-office
 
-* Manage docker specification and dispach the hub.
-* Enable faster setup with directory structure tagging and simple tools.
+Prepare container build inputs and consistent image tags for a reviewed distribution destination.
 
-## Tagging Rules/Tools
+## What you can do
 
-### Image Tag Format
-- Docker images are tagged based on their directory paths. The tag format is: `username/dir1-dir2:dir3`, where:
-   - `dir1`: App name of the top-level directory set.
-    - the ```base``` directory is a little special for depends on other directory.
-   - `dir2`: Additional info of the dir1 to dir3.
-   - `dir3`: Mainly set the version.
+- Inspect build and tag-generation definitions.
+- Choose the registered image namespace before publication.
 
-#### bubbles-out.sh
-Build bake file script generates Docker image tags based on the directory structure of Dockerfiles, specifically designed for a hierarchical directory structure.
+## Current scope
 
-```
-./bubbles-out.sh [registry/namespace]
-```
+Container publication remains disabled. Images have not been built or vulnerability-scanned as part of the documentation review.
 
-After exec the script. Bake file for Github Action out `bocker-bake.hcl` in same directory.
+Package distribution is not activated by this documentation. Use the checked-in source and the declared dependency versions; published availability must be verified separately.
 
-```
-cat docker-bake.hcl
-```
+## Getting started
 
-#### Example Structure
+Start with the implementation and examples linked below. Review registered configuration and prerequisites before running a command that writes state or contacts a service.
 
-```
-
-├── base
-│ ├── alpine
-│ │ └── v1.0 (-> ghcr.io/vpremises/base-alpine:v1)
-│ │   └── Dockerfile
-│ └── debian
-│   └── v1.0
-│     └── Dockerfile
-└── app
-  ├── service1
-  │ └── v1.0
-  │   └── Dockerfile
-  └── service2
-    └── v1.0
-      └── Dockerfile
-```
-
-### Local build
-
-If want to build a specific file locally, run the following command:
-
-```
-./local-build.sh [target name in hcl file]
-```
+## Examples and interface details
 
 ## Distribution configuration
 
 The planned image namespace is `ghcr.io/vpremises`, configurable through `IMAGE_NAMESPACE` in the bake file. No images have been published to that namespace by this migration. Build and authorize the base images before dependent Frappe images. The checked-in Dockerfiles are historical build examples; a full image build and vulnerability assessment remain prerequisites for release.
 
 Publication is manual and disabled unless `CONTAINER_PUBLICATION_ENABLED` is explicitly set to `true`. Configure `CONTAINER_REGISTRY`, `CONTAINER_NAMESPACE`, and narrowly scoped `CONTAINER_USERNAME` / `CONTAINER_TOKEN` secrets only after approving the registry destination and package permissions. Source pushes do not publish images. Consumers set the image reference to an available immutable image digest before deployment.
+
+## Documentation and source
+
+[Interface reference](docs/interface-reference.md)
+
+[Usage guide](docs/getting-started.md)
+
+[Contributing](CONTRIBUTING.md) · [Security reporting](SECURITY.md) · [License](LICENSE) · [Attribution notices](NOTICE)
