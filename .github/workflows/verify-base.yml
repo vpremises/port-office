@@ -1,0 +1,27 @@
+name: Verify independent Debian base
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-base:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SOURCE_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - name: Inspect build definition
+        run: ./local-build.sh base-debian --print
+      - name: Build candidate without registry publication
+        run: ./local-build.sh base-debian --load
+      - name: Verify isolated image contract
+        run: ./tests/verify-base.sh
+      - name: Record local candidate identity
+        run: docker image inspect ghcr.io/vpremises/base-debian:0.1.0 --format '{{json .Id}} {{json .Config.Labels}}'
