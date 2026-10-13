@@ -57,4 +57,8 @@ Inspect a target without building or publishing:
 docker buildx bake --print iac-tofu-v1_6_0
 ```
 
-The Google Terraformer 5.13.0 target remains affected by [issue #2](https://github.com/vpremises/port-office/issues/2); the 4.59.0 variant is a historical workaround, not a current compatibility guarantee. The upstream importer is archived, so a maintained replacement and isolated acceptance are needed before activation. [Bazel adoption #4](https://github.com/vpremises/port-office/issues/4) remains a separate build-backend decision.
+The Google Terraformer 5.13.0 target remains affected by [issue #2](https://github.com/vpremises/port-office/issues/2); the 4.59.0 variant is a historical workaround, not a current compatibility guarantee. The [upstream importer](https://github.com/GoogleCloudPlatform/terraformer) is archived, so a maintained replacement and isolated acceptance are needed before activation. The owner selected Docker Bake as the canonical build backend for [issue #4](https://github.com/vpremises/port-office/issues/4).
+
+## Build backend decision
+
+Docker Bake is the canonical build definition and CI build backend. Maintain targets, groups, Dockerfile inputs and image namespaces in `docker-bake.hcl`; use the same definition locally and in GitHub Actions. Bazel/rules_oci migration is not adopted. Keep publication disabled until image inputs, immutable output digests, security acceptance and registry permissions are reviewed.
