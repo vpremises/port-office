@@ -1,64 +1,64 @@
-name: Publish reviewed Debian base (disabled by default)
+name: Promote reviewed Debian candidate (disabled by default)
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: Reviewed new image version (existing tags cannot be overwritten)
+        description: Reviewed immutable image version
         required: true
         default: '0.1.0'
         type: string
+      candidate-run:
+        description: Successful prepare-reviewed-base run for this exact main SHA
+        required: true
+        type: string
+      expected-archive-sha256:
+        description: Owner-reviewed OCI archive SHA256
+        required: true
+        type: string
 permissions:
   contents: read
+concurrency:
+  group: debian-publication-${{ github.repository }}-${{ inputs.version }}
+  cancel-in-progress: false
 jobs:
-  bake-base:
+  promote:
     if: vars.CONTAINER_PUBLICATION_ENABLED == 'true' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
       contents: read
       actions: read
       packages: write
     env:
-      IMAGE_NAMESPACE: ghcr.io/vpremises
-      IMAGE_VERSION: ${{ inputs.version }}
-      SOURCE_REVISION: ${{ github.sha }}
       GH_TOKEN: ${{ github.token }}
+      CANDIDATE_RUN: ${{ inputs.candidate-run }}
+      IMAGE_VERSION: ${{ inputs.version }}
+      EXPECTED_ARCHIVE: ${{ inputs.expected-archive-sha256 }}
+      CONTAINER_PUBLICATION_ENABLED: ${{ vars.CONTAINER_PUBLICATION_ENABLED }}
+      CONTAINER_SOURCE_APPROVED_SHA: ${{ vars.CONTAINER_SOURCE_APPROVED_SHA }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
-      - name: Require reviewed version and successful main acceptance
-        shell: bash
+      - name: Require exact owner approval and successful candidate producer
         run: |
-          [[ "$IMAGE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
-          test "$GITHUB_REPOSITORY" = vpremises/port-office
-          runs=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow verify-base.yml --branch main --commit "$GITHUB_SHA" --status success --limit 1 --json databaseId)
-          test "$(printf '%s' "$runs" | jq length)" -eq 1
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+          test "$CONTAINER_SOURCE_APPROVED_SHA" = "$GITHUB_SHA"
+          [[ "$CANDIDATE_RUN" =~ ^[0-9]+$ ]] || exit 2
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CANDIDATE_RUN" > "$RUNNER_TEMP/run.json"
+          python3 - "$RUNNER_TEMP/run.json" <<'PYCODE'
+          import json, os, sys
+          run = json.load(open(sys.argv[1]))
+          assert run['head_sha'] == os.environ['GITHUB_SHA']
+          assert run['status'] == 'completed' and run['conclusion'] == 'success'
+          assert run['path'] == '.github/workflows/prepare-reviewed-base.yml'
+          PYCODE
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-      - name: Refuse existing tags and uncertain registry responses
-        shell: bash
-        run: |
-          if docker manifest inspect "$IMAGE_NAMESPACE/base-debian:$IMAGE_VERSION" > "$RUNNER_TEMP/existing.json" 2> "$RUNNER_TEMP/manifest-error"; then
-            echo 'Version already exists; choose a new patch version.' >&2
-            exit 1
-          fi
-          if ! grep -Eq 'manifest unknown|no such manifest' "$RUNNER_TEMP/manifest-error"; then
-            echo 'Registry absence could not be verified; publication refused.' >&2
-            exit 1
-          fi
-      - name: Build and accept the selected release configuration
-        run: |
-          ./local-build.sh base-debian --load
-          ./tests/verify-base.sh
-      - uses: docker/bake-action@5be5f02ff8819ecd3092ea6b2e6261c31774f2b4
-        with:
-          files: docker-bake.hcl
-          targets: base-debian
-          push: true
-          sbom: true
-          provenance: mode=max
+          name: debian-candidate-${{ github.sha }}-${{ inputs.version }}
+          run-id: ${{ inputs.candidate-run }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/debian-candidate
+      - name: Install registry copy mechanism
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends skopeo
+      - name: Promote verified bytes without rebuilding or changing existing tags
+        run: bash scripts/release/promote.sh "$RUNNER_TEMP/debian-candidate" "$EXPECTED_ARCHIVE" "$IMAGE_VERSION" "$GITHUB_SHA"
