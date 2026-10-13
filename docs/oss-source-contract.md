@@ -62,3 +62,11 @@ Schema definitions in the map remain owned by their canonical validator and
 consumers. An absent schema file means no separate schema file is declared; it does
 not mean the runtime interface has no validation. Do not introduce another common
 schema solely to mirror an implementation type.
+
+## Pinned-base security refresh
+
+The Docker source upgrades already installed Debian packages from the declared
+APT repositories before adding CA trust. Pinning the upstream image digest alone
+does not consume later security package updates. A new build still needs its own
+SBOM/provenance/fresh scan and may retain upstream unfixed findings; this source
+change does not waive findings, enable publication or claim an accepted image.

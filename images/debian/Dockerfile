@@ -12,6 +12,7 @@ LABEL org.opencontainers.image.title="port-office Debian base" \
 ENV LANG=C.UTF-8 TZ=Etc/UTC
 RUN set -eux; \
     apt-get update; \
+    apt-get upgrade -y --no-install-recommends; \
     apt-get install -y --no-install-recommends ca-certificates; \
     rm -rf /var/lib/apt/lists/*; \
     groupadd --gid 10001 runtime; \
