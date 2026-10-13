@@ -1,8 +1,0 @@
-frappe/frappe,v15.11.0,apps/frappe,pipx
-frappe/erpnext,v15.10.5,apps/erpnext,pipx
-frappe/hrms,v15.9.2,apps/hrms,pip
-frappe/payments,version-15,apps/payments,pip
-frappe/helpdesk,0.10.0,apps/helpdesk,pip
-The-Commit-Company/Raven,v1.3.2,apps/raven,pipx
-alyf-de/erpnext_pdf-on-submit,version-15,apps/erpnext_pdf-on-submit,pip
-frappe/education,version-15,apps/education,pip

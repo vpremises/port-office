@@ -1,22 +1,17 @@
-# Using port-office
+# Use the Debian base
 
-Prepare container build inputs and consistent image tags for a reviewed distribution destination.
+Docker Engine and Docker Buildx are required. No adjacent repository or private registry is needed.
 
-## Before you start
+```sh
+./local-build.sh base-debian --print
+SOURCE_REVISION=$(git rev-parse HEAD) ./local-build.sh base-debian --load
+./tests/verify-base.sh
+```
 
-Container publication remains disabled. Images have not been built or vulnerability-scanned as part of the documentation review.
+Local builds never push. `IMAGE_NAMESPACE`, `IMAGE_VERSION`, `SOURCE_REVISION` and `PLATFORMS` are Bake variables; inspect the rendered definition before building. The initial supported acceptance platform is linux/amd64. Use one platform with `--load`.
 
-## First steps
+A consuming product adds its own files, runtime and startup policy. After an official release, obtain and verify its registry digest, then use `FROM ghcr.io/vpremises/base-debian@sha256:<accepted-digest>`. There is no published digest for this source candidate. Application-specific root build steps may precede a final `USER 10001:10001`; credentials and operational data never belong in image layers.
 
-Read the declared configuration and implementation before enabling an operation. Choose an explicitly registered target and review any write or external effect.
+The isolated checks cover non-root identity, work directory, CA bundle, locale/timezone, package-cache cleanup, absence of bundled product/provider tools, read-only startup and ordinary ephemeral work-directory writes. They do not claim real cloud-account or product compatibility.
 
-## How to assess the result
-
-- Inspect build and tag-generation definitions.
-- Choose the registered image namespace before publication.
-
-A passing source-level check establishes only what that check observes. Keep missing configuration, unavailable services and unverified deployment paths visible.
-
-## Continue reading
-
-[Repository overview](../README.md)
+See [image contract](interface-reference.md) and [owner responsibilities](base-image-purpose.ja.md).

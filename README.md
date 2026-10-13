@@ -1,64 +1,35 @@
 # port-office
 
-Prepare container build inputs and consistent image tags for a reviewed distribution destination.
+Independent Docker base images maintained by vPremises. Products consume an accepted immutable image digest and own their application dependencies, startup, configuration and account permissions.
 
-## What you can do
+[目的・責務と独立運用](docs/base-image-purpose.ja.md) · [Usage](docs/getting-started.md) · [Image contract](docs/interface-reference.md)
 
-- Inspect build and tag-generation definitions.
-- Choose the registered image namespace before publication.
+## Current catalog
 
-## Current scope
+| Target | Purpose | Upstream | Runtime | Execution | Status |
+| --- | --- | --- | --- | --- | --- |
+| `base-debian` | Minimal Debian OS base | `debian:trixie-slim`, pinned multi-platform index in Dockerfile | No Python/Node/compiler or provider CLI | UID/GID 10001, `/workspace`, CA trust, UTF-8, UTC | 0.1.0 source candidate; registry publication not enabled |
 
-Container publication remains disabled. Images have not been built or vulnerability-scanned as part of the documentation review.
-
-Package distribution is not activated by this documentation. Use the checked-in source and the declared dependency versions; published availability must be verified separately.
-
-## Getting started
-
-Start with the implementation and examples linked below. Review registered configuration and prerequisites before running a command that writes state or contacts a service.
-
-## Examples and interface details
-
-## Distribution configuration
-
-The planned image namespace is `ghcr.io/vpremises`, configurable through `IMAGE_NAMESPACE` in the bake file. No images have been published to that namespace by this migration. Build and authorize the base images before dependent Frappe images. The checked-in Dockerfiles are historical build examples; a full image build and vulnerability assessment remain prerequisites for release.
-
-Publication is manual and disabled unless `CONTAINER_PUBLICATION_ENABLED` is explicitly set to `true`. Configure `CONTAINER_REGISTRY`, `CONTAINER_NAMESPACE`, and narrowly scoped `CONTAINER_USERNAME` / `CONTAINER_TOKEN` secrets only after approving the registry destination and package permissions. Source pushes do not publish images. Consumers set the image reference to an available immutable image digest before deployment.
-
-## Documentation and source
-
-[Interface reference](docs/interface-reference.md)
-
-[Usage guide](docs/getting-started.md)
-
-[Contributing](CONTRIBUTING.md) · [Security reporting](SECURITY.md) · [License](LICENSE) · [Attribution notices](NOTICE)
-
-## Defined image catalog
-
-These 11 entries describe checked-in Docker Bake targets, not released or supported images. Registry availability, immutable digests, full builds and vulnerability assessment must be verified before use. The namespace can be overridden with `IMAGE_NAMESPACE`; the table shows its checked-in default.
-
-| Bake target | Planned image tag | Group | Dockerfile | Validation status |
-| --- | --- | --- | --- | --- |
-| `base-alpine-v3_19-p3_11_7-n20` | `ghcr.io/vpremises/base-alpine:v3.19-p3.11.7-n20` | `default` | [./base/alpine/v3.19-p3.11.7-n20/Dockerfile](./base/alpine/v3.19-p3.11.7-n20/Dockerfile) | ビルド定義あり・配布未確認 |
-| `base-alpine-v3_19-p3_11_7-n18` | `ghcr.io/vpremises/base-alpine:v3.19-p3.11.7-n18` | `default` | [./base/alpine/v3.19-p3.11.7-n18/Dockerfile](./base/alpine/v3.19-p3.11.7-n18/Dockerfile) | ビルド定義あり・配布未確認 |
-| `base-alpine-v3_18-p3_11_7-n18` | `ghcr.io/vpremises/base-alpine:v3.18-p3.11.7-n18` | `default` | [./base/alpine/v3.18-p3.11.7-n18/Dockerfile](./base/alpine/v3.18-p3.11.7-n18/Dockerfile) | ビルド定義あり・配布未確認 |
-| `base-debian-bookworm-p3_11_7-n18` | `ghcr.io/vpremises/base-debian:bookworm-p3.11.7-n18` | `default` | [./base/debian/bookworm-p3.11.7-n18/Dockerfile](./base/debian/bookworm-p3.11.7-n18/Dockerfile) | ビルド定義あり・配布未確認 |
-| `iac-tofu-v1_6_0` | `ghcr.io/vpremises/iac-tofu:v1.6.0` | `iac` | [./iac/tofu/v1.6.0/Dockerfile](./iac/tofu/v1.6.0/Dockerfile) | ビルド定義あり・配布未確認 |
-| `iac-tofuformer-gcp-5_13_0` | `ghcr.io/vpremises/iac-tofuformer:gcp-5.13.0` | `iac` | [./iac/tofuformer/gcp-5.13.0/Dockerfile](./iac/tofuformer/gcp-5.13.0/Dockerfile) | 既知のimport不具合 (#2) |
-| `iac-tofuformer-gcp-4_59_0` | `ghcr.io/vpremises/iac-tofuformer:gcp-4.59.0` | `iac` | [./iac/tofuformer/gcp-4.59.0/Dockerfile](./iac/tofuformer/gcp-4.59.0/Dockerfile) | 旧回避候補・未受入 |
-| `traefik-v3_0_0-beta5-alpine` | `ghcr.io/vpremises/traefik-v3.0.0-beta5:alpine` | `frappe` | [./traefik/v3.0.0-beta5/alpine/Dockerfile](./traefik/v3.0.0-beta5/alpine/Dockerfile) | ビルド定義あり・配布未確認 |
-| `traefik-v3_0_0-beta5-debian` | `ghcr.io/vpremises/traefik-v3.0.0-beta5:debian` | `frappe` | [./traefik/v3.0.0-beta5/debian/Dockerfile](./traefik/v3.0.0-beta5/debian/Dockerfile) | ビルド定義あり・配布未確認 |
-| `frappe-v15_11_0-alpine` | `ghcr.io/vpremises/frappe-v15.11.0:alpine` | `frappe` | [./frappe/v15.11.0/alpine/Dockerfile](./frappe/v15.11.0/alpine/Dockerfile) | ビルド定義あり・配布未確認 |
-| `frappe-v15_11_0-debian` | `ghcr.io/vpremises/frappe-v15.11.0:debian` | `frappe` | [./frappe/v15.11.0/debian/Dockerfile](./frappe/v15.11.0/debian/Dockerfile) | ビルド定義あり・配布未確認 |
-
-Inspect a target without building or publishing:
+`images/debian/Dockerfile` owns the image contract; `docker-bake.hcl` is the single build definition. The initial acceptance platform is `linux/amd64`. Other platforms and runtime images require their own acceptance before they enter this catalog.
 
 ```sh
-docker buildx bake --print iac-tofu-v1_6_0
+./local-build.sh base-debian --print
+./local-build.sh base-debian --load
+./tests/verify-base.sh
 ```
 
-The Google Terraformer 5.13.0 target remains affected by [issue #2](https://github.com/vpremises/port-office/issues/2); the 4.59.0 variant is a historical workaround, not a current compatibility guarantee. The [upstream importer](https://github.com/GoogleCloudPlatform/terraformer) is archived, so a maintained replacement and isolated acceptance are needed before activation. The owner selected Docker Bake as the canonical build backend for [issue #4](https://github.com/vpremises/port-office/issues/4).
+Tests use disposable containers without network, host mounts, cloud credentials or the Docker socket inside the image. Source CI builds and tests without publishing images.
 
-## Build backend decision
+## Distribution and maintenance
 
-Docker Bake is the canonical build definition and CI build backend. Maintain targets, groups, Dockerfile inputs and image namespaces in `docker-bake.hcl`; use the same definition locally and in GitHub Actions. Bazel/rules_oci migration is not adopted. Keep publication disabled until image inputs, immutable output digests, security acceptance and registry permissions are reviewed.
+The planned destination is `ghcr.io/vpremises/base-debian:<version>`. The publication workflow remains disabled by default through `CONTAINER_PUBLICATION_ENABLED`. It requires manual dispatch from main, successful base acceptance for that source, a new version, and uses this repository's `GITHUB_TOKEN`. Shared registry tokens and access to other repositories are not required. Published builds request SBOM and source provenance. Enabling publication, vulnerability acceptance and official digest/provenance read-back remain release prerequisites; this source candidate is not a published image.
+
+Pin the upstream digest and record output digests. Debian package updates are obtained during builds, so source equality alone does not imply identical image bytes. Review a new candidate and use a new image version when patching. Consumers update by digest in their own repositories; old tags are not overwritten.
+
+## Removed historical scope
+
+The previous mixed Python/Node bases, Frappe/Traefik products and OpenTofu/Terraformer toolboxes are removed from the current build and source tree. Their definitions remain in Git history at `627188c94e3dd3a04729960fe9b0c12c9d0e1acc`. They are not supported base images. The obsolete Bake generator is removed; edit the canonical Bake definition directly.
+
+This purpose decision supersedes the Terraformer target in issue #2: its failing provider integration is retired here, not repaired. Required import capabilities belong in a separately selected tool/product owner. Docker Bake remains the selected backend; Bazel is not introduced.
+
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [License](LICENSE) · [Notices](NOTICE)

@@ -1,81 +1,64 @@
-name: Publish container images (disabled by default)
-'on':
-  workflow_dispatch: null
+name: Publish reviewed Debian base (disabled by default)
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Reviewed new image version (existing tags cannot be overwritten)
+        required: true
+        default: '0.1.0'
+        type: string
 permissions:
   contents: read
-env:
-  IMAGE_NAMESPACE: ${{ vars.CONTAINER_NAMESPACE }}
 jobs:
   bake-base:
-    if: vars.CONTAINER_PUBLICATION_ENABLED == 'true'
+    if: vars.CONTAINER_PUBLICATION_ENABLED == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    env:
+      IMAGE_NAMESPACE: ghcr.io/vpremises
+      IMAGE_VERSION: ${{ inputs.version }}
+      SOURCE_REVISION: ${{ github.sha }}
+      GH_TOKEN: ${{ github.token }}
     steps:
-    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-      with:
-        persist-credentials: false
-    - name: Validate approved destination
-      env:
-        REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-        NAMESPACE: ${{ vars.CONTAINER_NAMESPACE }}
-      run: test -n "$REGISTRY" && test -n "$NAMESPACE" && test "${NAMESPACE%%/*}"
-        = "$REGISTRY"
-    - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
-    - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
-      with:
-        registry: ${{ vars.CONTAINER_REGISTRY }}
-        username: ${{ secrets.CONTAINER_USERNAME }}
-        password: ${{ secrets.CONTAINER_TOKEN }}
-    - uses: docker/bake-action@5be5f02ff8819ecd3092ea6b2e6261c31774f2b4
-      with:
-        push: true
-        targets: default
-  bake-apps:
-    if: vars.CONTAINER_PUBLICATION_ENABLED == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-      with:
-        persist-credentials: false
-    - name: Validate approved destination
-      env:
-        REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-        NAMESPACE: ${{ vars.CONTAINER_NAMESPACE }}
-      run: test -n "$REGISTRY" && test -n "$NAMESPACE" && test "${NAMESPACE%%/*}"
-        = "$REGISTRY"
-    - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
-    - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
-      with:
-        registry: ${{ vars.CONTAINER_REGISTRY }}
-        username: ${{ secrets.CONTAINER_USERNAME }}
-        password: ${{ secrets.CONTAINER_TOKEN }}
-    - uses: docker/bake-action@5be5f02ff8819ecd3092ea6b2e6261c31774f2b4
-      with:
-        push: true
-        targets: frappe
-    needs: bake-base
-  bake-iac:
-    if: vars.CONTAINER_PUBLICATION_ENABLED == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-      with:
-        persist-credentials: false
-    - name: Validate approved destination
-      env:
-        REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-        NAMESPACE: ${{ vars.CONTAINER_NAMESPACE }}
-      run: test -n "$REGISTRY" && test -n "$NAMESPACE" && test "${NAMESPACE%%/*}"
-        = "$REGISTRY"
-    - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
-    - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
-      with:
-        registry: ${{ vars.CONTAINER_REGISTRY }}
-        username: ${{ secrets.CONTAINER_USERNAME }}
-        password: ${{ secrets.CONTAINER_TOKEN }}
-    - uses: docker/bake-action@5be5f02ff8819ecd3092ea6b2e6261c31774f2b4
-      with:
-        push: true
-        targets: iac
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Require reviewed version and successful main acceptance
+        shell: bash
+        run: |
+          [[ "$IMAGE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          test "$GITHUB_REPOSITORY" = vpremises/port-office
+          runs=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow verify-base.yml --branch main --commit "$GITHUB_SHA" --status success --limit 1 --json databaseId)
+          test "$(printf '%s' "$runs" | jq length)" -eq 1
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Refuse existing tags and uncertain registry responses
+        shell: bash
+        run: |
+          if docker manifest inspect "$IMAGE_NAMESPACE/base-debian:$IMAGE_VERSION" > "$RUNNER_TEMP/existing.json" 2> "$RUNNER_TEMP/manifest-error"; then
+            echo 'Version already exists; choose a new patch version.' >&2
+            exit 1
+          fi
+          if ! grep -Eq 'manifest unknown|no such manifest' "$RUNNER_TEMP/manifest-error"; then
+            echo 'Registry absence could not be verified; publication refused.' >&2
+            exit 1
+          fi
+      - name: Build and accept the selected release configuration
+        run: |
+          ./local-build.sh base-debian --load
+          ./tests/verify-base.sh
+      - uses: docker/bake-action@5be5f02ff8819ecd3092ea6b2e6261c31774f2b4
+        with:
+          files: docker-bake.hcl
+          targets: base-debian
+          push: true
+          sbom: true
+          provenance: mode=max
