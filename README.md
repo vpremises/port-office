@@ -35,3 +35,5 @@ The previous mixed Python/Node bases, Frappe/Traefik products and OpenTofu/Terra
 This purpose decision supersedes the Terraformer target in issue #2: its failing provider integration is retired here, not repaired. Required import capabilities belong in a separately selected tool/product owner. Docker Bake remains the selected backend; Bazel is not introduced.
 
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [License](LICENSE) · [Notices](NOTICE)
+
+[OSS responsibility and source completion](docs/oss-source-contract.md) defines the supported package boundary and required acceptance. It does not declare unexecuted source, distribution or production checks complete.
