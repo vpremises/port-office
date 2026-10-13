@@ -10,6 +10,9 @@ variable "SOURCE_REVISION" {
 variable "PLATFORMS" {
   default = "linux/amd64"
 }
+variable "OCI_ARCHIVE" {
+  default = ".artifacts/base-debian.oci.tar"
+}
 
 target "base-debian" {
   context = "."
@@ -23,4 +26,11 @@ target "base-debian" {
 }
 group "default" {
   targets = ["base-debian"]
+}
+
+# Both exporters use one BuildKit solve; test the image represented by the OCI candidate.
+target "candidate" {
+  inherits = ["base-debian"]
+  output = ["type=oci,dest=${OCI_ARCHIVE}", "type=docker"]
+  attest = ["type=sbom", "type=provenance,mode=max"]
 }

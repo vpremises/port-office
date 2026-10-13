@@ -22,7 +22,9 @@ Tests use disposable containers without network, host mounts, cloud credentials 
 
 ## Distribution and maintenance
 
-The planned destination is `ghcr.io/vpremises/base-debian:<version>`. The publication workflow remains disabled by default through `CONTAINER_PUBLICATION_ENABLED`. It requires manual dispatch from main, successful base acceptance for that source, a new version, and uses this repository's `GITHUB_TOKEN`. Shared registry tokens and access to other repositories are not required. Published builds request SBOM and source provenance. Enabling publication, vulnerability acceptance and official digest/provenance read-back remain release prerequisites; this source candidate is not a published image.
+The destination is `ghcr.io/vpremises/base-debian:<version>`. The [reviewed publication path](docs/reviewed-publication.md) prepares one OCI candidate, tests its image, verifies digest-bound SBOM/provenance, and requires a fresh vulnerability scan. Manual promotion copies the same reviewed archive without rebuilding, rejects conflicting tags and requires anonymous registry read-back. Publication remains disabled by default through `CONTAINER_PUBLICATION_ENABLED` and requires approval of the exact main source SHA and archive SHA256. Repository-scoped `GITHUB_TOKEN` is used only after verification. No image is currently declared published.
+
+[Responsibility and source completion](RESPONSIBILITY.md) separates the completed source mechanisms from acceptance of a particular release candidate.
 
 Pin the upstream digest and record output digests. Debian package updates are obtained during builds, so source equality alone does not imply identical image bytes. Review a new candidate and use a new image version when patching. Consumers update by digest in their own repositories; old tags are not overwritten.
 
@@ -33,3 +35,5 @@ The previous mixed Python/Node bases, Frappe/Traefik products and OpenTofu/Terra
 This purpose decision supersedes the Terraformer target in issue #2: its failing provider integration is retired here, not repaired. Required import capabilities belong in a separately selected tool/product owner. Docker Bake remains the selected backend; Bazel is not introduced.
 
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [License](LICENSE) · [Notices](NOTICE)
+
+[OSS responsibility and source completion](docs/oss-source-contract.md) defines the supported package boundary and required acceptance. It does not declare unexecuted source, distribution or production checks complete.
