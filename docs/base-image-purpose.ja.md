@@ -25,3 +25,12 @@ Frappe/Traefikの完成image、Terraformer/OpenTofu等の用途別toolbox、環�
 `images/`は保守するimageのDockerfile、`docker-bake.hcl`はbuild契約、`tests/`はimageの受入、`docs/`は用途・support・公開/更新手順です。各imageはOS/runtime/CPU platform、上流digest、非root UIDと作業directoryを一覧で示します。
 
 初期imageの選定・検証結果はREADMEの現行catalogに反映します。歴史的な11target一覧は当時の記録であり、現行のサポート表として再利用しません。旧Terraformer不具合はDockerベースの受入条件から分離します。
+
+
+## 独立セキュリティ検証
+
+`security-base.yml` はDockerfile/build契約・検証コードのPR/main変更、週次、手動起動で、同一OCI候補の実行検証と脆弱性検査を行う。中央管理repoや製品checkout、registry公開tokenは不要。失敗時もscan/database/exceptionの観測結果をartifactとSummaryへ残し、検査不能を脆弱性ゼロと扱わない。
+
+SBOM/provenance付きOCI indexはDockerのclassic exporterと同時出力できないため、OCIを一度生成し、検証済みconfig/layerからDocker load用archiveを作る。実行検証後のdocker saveを再検査してconfig bytesと各uncompressed layer digestを照合する。変換したDocker manifestのIDと元OCI indexのIDは同じとは限らないため、文字列IDの一致で代用しない。正式配布対象は元OCI archiveで、実行検証用archiveを公開しない。
+
+HIGH/CRITICAL/UNKNOWN、古いDB、未対応OS、不完全inventoryの拒否を維持する。未修正脆弱性を無断で例外化せず、実際の検査結果と対応可能性をこのrepoの課題として管理する。image公開の可否と検証経路の修正完了は分ける。

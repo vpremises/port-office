@@ -11,8 +11,14 @@ export SOURCE_REVISION=${SOURCE_REVISION:-$(git rev-parse HEAD)}
 export OCI_ARCHIVE="$candidate_dir/image.oci.tar"
 export PLATFORMS=linux/amd64
 docker buildx bake --allow "fs.write=$candidate_dir" --file docker-bake.hcl candidate
+python3 scripts/release/runtime_archive.py convert "$OCI_ARCHIVE" "$candidate_dir/runtime.tar" "$SOURCE_REVISION" "$IMAGE_VERSION"
+docker load --input "$candidate_dir/runtime.tar"
+rm -- "$candidate_dir/runtime.tar"
 ./tests/verify-base.sh
-# Compare the tested Docker exporter with the image config in the OCI exporter.
+docker save --output "$candidate_dir/tested-runtime.tar" "ghcr.io/vpremises/base-debian:$IMAGE_VERSION"
+python3 scripts/release/runtime_archive.py verify "$OCI_ARCHIVE" "$candidate_dir/tested-runtime.tar" "$SOURCE_REVISION" "$IMAGE_VERSION"
+rm -- "$candidate_dir/tested-runtime.tar"
+# Compare the runtime imported from exact OCI blobs with the verified candidate.
 python3 - "$OCI_ARCHIVE" "$SOURCE_REVISION" "$IMAGE_VERSION" <<'PY'
 import json, subprocess, sys
 import pathlib, tarfile, hashlib
@@ -20,9 +26,8 @@ sys.path.insert(0, 'scripts/release')
 from oci_candidate import inspect_archive
 identity = inspect_archive(*sys.argv[1:])
 image = 'ghcr.io/vpremises/base-debian:' + sys.argv[3]
-loaded = subprocess.check_output(['docker', 'image', 'inspect', image, '--format', '{{.Id}}'], text=True).strip()
-# Classic stores expose the config ID; containerd stores expose the OCI index ID.
-assert loaded in {identity['config_digest'], identity['registry_digest']}, 'tested image differs from OCI candidate'
+# Runtime config and every uncompressed layer were verified above. Docker IDs
+# may identify a converted manifest, so they are not a portable config assertion.
 print(json.dumps(identity))
 # Trivy's OCI reader consumes a layout directory, not an OCI archive.
 layout = pathlib.Path(sys.argv[1]).parent / 'layout'
