@@ -28,9 +28,10 @@ group "default" {
   targets = ["base-debian"]
 }
 
-# Both exporters use one BuildKit solve; test the image represented by the OCI candidate.
+# Keep attestations in the OCI index. The runtime test imports the exact image blobs
+# from this archive; Docker's classic exporter cannot load an attested manifest list.
 target "candidate" {
   inherits = ["base-debian"]
-  output = ["type=oci,dest=${OCI_ARCHIVE}", "type=docker"]
+  output = ["type=oci,dest=${OCI_ARCHIVE}"]
   attest = ["type=sbom", "type=provenance,mode=max"]
 }

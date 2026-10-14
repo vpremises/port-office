@@ -1,0 +1,48 @@
+name: Independent Debian security acceptance
+on:
+  pull_request:
+    paths: ['images/**', 'docker-bake.hcl', 'scripts/release/**', 'tests/**', '.github/workflows/security-base.yml']
+  push:
+    branches: [main]
+    paths: ['images/**', 'docker-bake.hcl', 'scripts/release/**', 'tests/**', '.github/workflows/security-base.yml']
+  schedule:
+    - cron: '23 2 * * 3'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: base-security-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      IMAGE_VERSION: '0.1.0'
+      SOURCE_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - name: Verify exact-image import and vulnerability policy
+        run: python3 -m unittest discover -s tests/release -v
+      - name: Build, inspect, test and scan without registry credentials
+        id: gate
+        run: bash scripts/release/prepare.sh "$RUNNER_TEMP/security-candidate"
+      - name: Summarize the observed security result, including rejected candidates
+        if: always()
+        env:
+          GATE_OUTCOME: ${{ steps.gate.outcome }}
+        run: python3 scripts/release/security_summary.py "$RUNNER_TEMP/security-candidate"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: base-security-evidence-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/security-candidate/scan.json
+            ${{ runner.temp }}/security-candidate/database.json
+            ${{ runner.temp }}/security-candidate/exceptions.json
+            ${{ runner.temp }}/security-candidate/receipt.json
+          if-no-files-found: warn
+          retention-days: 14
