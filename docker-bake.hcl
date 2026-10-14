@@ -33,5 +33,5 @@ group "default" {
 target "candidate" {
   inherits = ["base-debian"]
   output = ["type=oci,dest=${OCI_ARCHIVE}"]
-  attest = ["type=sbom", "type=provenance,mode=max"]
+  attest = ["type=sbom", "type=provenance,mode=max,version=v0.2"]
 }
