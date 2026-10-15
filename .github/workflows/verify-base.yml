@@ -21,6 +21,7 @@ jobs:
         run: ./local-build.sh base-debian --print
       - name: Verify candidate integrity and fail-closed release policy
         run: |
+          python3 .github/scripts/test_source_admission.py
           python3 -m unittest discover -s tests/release -v
           bash -n scripts/release/prepare.sh scripts/release/promote.sh
           python3 -m py_compile scripts/release/*.py

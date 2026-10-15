@@ -10,7 +10,14 @@ source=${4:?source required}
 test "${CONTAINER_PUBLICATION_ENABLED:-false}" = true
 test "${CONTAINER_SOURCE_APPROVED_SHA:-}" = "$source"
 test "${GITHUB_REPOSITORY:-}" = vpremises/port-office
-test "${GITHUB_REF:-}" = refs/heads/main
+case "${GITHUB_REF:-}" in
+  refs/heads/main) ;; # Existing explicitly reviewed manual promotion.
+  "refs/tags/v$version")
+    test "${GITHUB_EVENT_NAME:-}" = push
+    test "${GITHUB_RUN_ATTEMPT:-}" = 1
+    ;; # Retries require explicit read-back; they cannot repeat promotion.
+  *) exit 2 ;;
+esac
 test "$(git rev-parse HEAD)" = "$source"
 python3 scripts/release/candidate.py verify --archive "$candidate_dir/image.oci.tar" \
   --scan "$candidate_dir/scan.json" --database "$candidate_dir/database.json" \
