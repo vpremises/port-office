@@ -1,0 +1,8 @@
+{
+  "repository": "vpremises/port-office",
+  "defaultBranch": "main",
+  "versionFile": ".github/image-release.json",
+  "requiredWorkflows": [
+    "verify-base.yml"
+  ]
+}

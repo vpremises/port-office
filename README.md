@@ -39,3 +39,10 @@ This purpose decision supersedes the Terraformer target in issue #2: its failing
 [OSS responsibility and source completion](docs/oss-source-contract.md) defines the supported package boundary and required acceptance. It does not declare unexecuted source, distribution or production checks complete.
 
 Dependency updates: [repository policy](docs/dependency-updates.md).
+
+
+## バージョンタグからの独立OCI公開
+
+`.github/image-release.json` のversionを更新するPRをmainへ反映し、CI成功後に `v<version>` タグをpushします。release-tag.ymlがこのrepoだけでbuild・正確なOCI imageのテスト・CVE検査・archive hashの固定まで実行します。CVE拒否をtagやEnvironment承認で迂回しません。
+
+公開は `CONTAINER_PUBLICATION_ENABLED=true` と実効的なrequired reviewersを持つ `ghcr-public` Environmentの承認後だけです。承認済みartifact ID/hashの同一bytesをGitHubの短命GITHUB_TOKENでGHCRへ送り、匿名digest/SBOM/provenanceを照合します。Docker Hub tokenや他repoのcheckoutは不要です。現在のCVE受入と初回GHCR公開は別の残件であり、workflow追加を配布完了と扱いません。古い手動候補のpromoteは既存経路として維持します。tag runの再試行は自動promotionせず、既存digestの読取確認から別途復旧してください。
